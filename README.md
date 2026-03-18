@@ -1,49 +1,52 @@
 # Gridworld 價值迭代演算法視覺化工具 (Value Iteration Visualizer)
 
-這是一個基於 **Streamlit** 開發的互動式網頁應用程式，旨在演示強化學習中的 **價值迭代 (Value Iteration)** 演算法如何在簡單的 Gridworld 環境中運作。
+這是一個基於 **Streamlit** 開發的互動式網頁應用程式，展示強化學習中的 **價值迭代 (Value Iteration)** 演算法如何在特定的 Gridworld 環境中尋找最佳政策。
 
-## 🚀 功能亮點
+## 🎯 專案訴求與規範
 
-1. **互動式環境設定**：
-   - 透過側邊欄調整 **折扣因子 ($\gamma$)**、**收斂閾值 ($	heta$)**、**每步獎勵**及**終點獎勵**。
-   - 預設 5x5 的網格環境，包含起點、終點以及自定義的障礙物 (Block)。
+1. **環境規格**：
+   - **網格大小**：5x5。
+   - **起點 (Start)**：位於儲存格 (0, 0)，以 **黃色** 標示。
+   - **終點 (Goal)**：位於儲存格 (4, 4)，以 **綠色** 標示。
+   - **障礙物 (Block)**：固定於 (1, 1), (2, 2), (3, 3)，以 **深灰色** 標示。
+2. **核心任務**：
+   - 使用價值迭代演算法 (Value Iteration) 推導每個狀態的最佳政策。
+   - 於網格中顯示推導出的 **最佳路徑箭頭** ($\uparrow, \downarrow, \leftarrow, \rightarrow$) 與 **價值函數 $V(s)$**。
 
-2. **核心演算法實現**：
-   - 完整實作價值迭代公式：$V(s) \leftarrow \max_a \sum_{s', r} p(s', r|s, a) [r + \gamma V(s')]$。
-   - 自動推導每個狀態的最佳政策 (Optimal Policy)，並以箭頭符號 ($\uparrow, \downarrow, \leftarrow, ightarrow$) 標示。
+## 🚀 技術更新亮點 (v2.0)
 
-3. **動態視覺化過程**：
-   - 點擊執行後，程式會動態更新網格中的數值與政策，讓使用者清楚觀察到價值函數如何隨著迭代次數增加而趨於穩定。
-   - 使用自定義 HTML/CSS 渲染美觀的網格介面。
-
-4. **即時反饋**：
-   - 顯示算法收斂所需的總迭代次數。
-   - 提供「重置環境」功能，方便重複實驗不同的參數組合。
+- **強健的網頁渲染**：為了解決傳統 `st.markdown` 無法正確呈現複雜 HTML 結構（導致顯示原始碼）的問題，本專案改用 `streamlit.components.v1.html`。
+- **獨立 iframe 容器**：將 HTML/CSS 網格封裝在獨立的 iframe 中，確保在 Streamlit Cloud 或各種瀏覽器部署環境下，樣式都能 100% 正確呈現，且不會被 Markdown 解析器干擾。
+- **動態收斂動畫**：實作即時重繪機制，使用者可親眼觀察價值函數從 0 開始逐漸傳播並收斂至穩定狀態的過程。
 
 ## 🛠️ 技術棧
 
-- **Python**: 核心邏輯。
-- **Streamlit**: 網頁介面框架與互動組件。
-- **NumPy**: 處理價值矩陣運算。
-- **HTML/CSS**: 用於自定義網格的可視化渲染。
+- **Python**: 演算法邏輯實作。
+- **Streamlit**: 網頁介面框架。
+- **Streamlit Components**: 解決複雜 HTML/CSS 渲染的關鍵組件。
+- **NumPy**: 處理價值矩陣 (Value Table) 的數學運算。
+- **HTML/CSS**: 自定義高度視覺化的網格 UI。
 
 ## 📂 程式碼結構說明 (`app.py`)
 
-- **參數與環境設定**: 使用 `st.sidebar` 蒐集使用者輸入，並利用 `st.session_state` 跨渲染保存環境狀態（如起點、終點、障礙物座標）。
-- **核心邏輯函數**:
-    - `get_next_state`: 處理邊界檢查、撞牆邏輯及障礙物限制。
-    - `get_reward`: 定義狀態轉移的即時獎勵。
-- **渲染函數 (`render_grid`)**: 將 NumPy 矩陣轉換為帶有樣式的 HTML 表格，並動態插入政策箭頭。
-- **主循環**: 實作 `while True` 迭代，計算 $\Delta = \max|V_{new} - V_{old}|$，直到小於閾值 $	heta$ 為止。
+- **環境初始化**: 設定固定的起終點與障礙物坐標。
+- **核心邏輯**:
+    - `get_next_state`: 處理撞牆、邊界與障礙物判定邏輯。
+    - `get_reward`: 定義進入終點獲得高額獎勵，其他步動作給予懲罰（Step Reward）。
+- **視覺化渲染 (`render_grid_html`)**: 將 NumPy 矩陣與政策陣列轉換為帶有樣式的 HTML `<table>`。
+- **價值迭代循環**: 根據 Bellman 方程式更新 $V(s)$，直到 $\Delta < \theta$ 為止。
 
 ## 📖 如何執行
 
-確保您已安裝必要套件：
-```bash
-pip install streamlit numpy
-```
+1. **安裝依賴**：
+   ```bash
+   pip install streamlit numpy
+   ```
 
-執行應用程式：
-```bash
-streamlit run app.py
-```
+2. **啟動程式**：
+   ```bash
+   streamlit run app.py
+   ```
+
+---
+**💡 提示**：點擊「🚀 開始價值迭代」後，系統會開始計算。收斂後，橘色箭頭將指示從起點前往終點的最短路徑。
