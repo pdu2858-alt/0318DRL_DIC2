@@ -31,6 +31,8 @@ if 'V' not in st.session_state:
     st.session_state.V = np.zeros((GRID_SIZE, GRID_SIZE))
 if 'policy' not in st.session_state:
     st.session_state.policy = [["" for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]
+if 'path' not in st.session_state:
+    st.session_state.path = []
 
 # ==========================================
 # 2. 核心演算法邏輯
@@ -49,10 +51,30 @@ def get_reward(s_prime):
         return goal_reward
     return step_reward
 
+def get_optimal_path(policy):
+    path = []
+    curr = START_STATE
+    visited = set()
+    while curr != GOAL_STATE and curr not in visited:
+        visited.add(curr)
+        path.append(curr)
+        symbol = policy[curr[0]][curr[1]]
+        if symbol == "": 
+            break
+        try:
+            action_idx = ACTION_SYMBOLS.index(symbol)
+            action = ACTIONS[action_idx]
+            curr = get_next_state(curr[0], curr[1], action)
+        except ValueError:
+            break
+    if curr == GOAL_STATE:
+        path.append(GOAL_STATE)
+    return path
+
 # ==========================================
 # 3. HTML 渲染函數 (使用 Components 解決顯示問題)
 # ==========================================
-def render_grid_html(V, policy):
+def render_grid_html(V, policy, path=[]):
     # 建立內嵌 CSS 樣式
     css = """
     <style>
@@ -73,6 +95,7 @@ def render_grid_html(V, policy):
         .goal { background-color: #28a745 !important; color: white; }
         .obstacle { background-color: #343a40 !important; color: white; }
         .start { background-color: #ffc107 !important; }
+        .path { background-color: #b7e1cd !important; } /* Light green for path */
         .arrow { font-size: 30px; font-weight: bold; color: #fd7e14; display: block; }
         .val-text { font-size: 10px; color: #6c757d; position: absolute; bottom: 2px; right: 4px; }
         .label-text { font-size: 11px; font-weight: bold; position: absolute; top: 2px; left: 4px; color: #333; }
@@ -98,6 +121,8 @@ def render_grid_html(V, policy):
             elif state == START_STATE:
                 cell_class += " start"
                 label = "START"
+            elif state in path:
+                cell_class += " path"
             
             v_val = f"{V[r,c]:.2f}" if state not in OBSTACLES else "N/A"
             p_symbol = policy[r][c] if (state != GOAL_STATE and state not in OBSTACLES) else ""
@@ -124,13 +149,14 @@ with col1:
     # 使用 components.html 強制渲染為網頁元件
     grid_container = st.empty()
     with grid_container:
-        components.html(render_grid_html(st.session_state.V, st.session_state.policy), height=500)
+        components.html(render_grid_html(st.session_state.V, st.session_state.policy, st.session_state.path), height=500)
 
 with col2:
     st.subheader("🎮 控制面板")
     if st.button("🚀 開始價值迭代", use_container_width=True):
         V = np.zeros((GRID_SIZE, GRID_SIZE))
         policy = [["" for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]
+        st.session_state.path = []
         
         iteration = 0
         while True:
@@ -171,9 +197,16 @@ with col2:
         
         st.session_state.V = V
         st.session_state.policy = policy
+        st.session_state.path = get_optimal_path(policy)
+        
+        # 最終呈現路徑
+        with grid_container:
+            components.html(render_grid_html(V, policy, st.session_state.path), height=500)
+            
         st.success(f"✅ 收斂完成！迭代次數: {iteration}")
 
     if st.button("🔄 重置", use_container_width=True):
         st.session_state.V = np.zeros((GRID_SIZE, GRID_SIZE))
         st.session_state.policy = [["" for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]
+        st.session_state.path = []
         st.rerun()
